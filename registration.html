@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Registration - ICEC Mathura</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased py-6">
+
+    <div class="max-w-xl mx-auto px-4">
+        <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl border border-slate-200">
+            
+            <div class="text-center mb-6 border-b pb-4">
+                <h1 class="text-xl md:text-2xl font-bold text-blue-900">ICEC Mathura Registration</h1>
+                <p class="text-xs text-slate-500">ऑनलाइन / ऑफलाइन प्रवेश फॉर्म</p>
+                <a href="index.html" class="text-xs text-blue-600 underline mt-1 inline-block">← होम पेज पर वापस जाएं</a>
+            </div>
+
+            <form id="regForm" class="space-y-5">
+
+                <!-- 1. Mode Selection -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">कोर्स का माध्यम चुनें / Select Mode (Online / Offline)</label>
+                    <select id="mode" onchange="updateCourses()" class="w-full px-4 py-2.5 rounded-lg border text-sm bg-white font-medium">
+                        <option value="online">Online (ऑनलाइन)</option>
+                        <option value="offline">Offline at Center (ऑफलाइन सेंटर पर)</option>
+                    </select>
+                </div>
+
+                <!-- 2. Course Selection & Fee Display -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">कोर्स चुनें / Select Course</label>
+                    <select id="course" onchange="updateFeeDetails()" class="w-full px-4 py-2.5 rounded-lg border text-sm bg-white font-medium">
+                        <!-- कोर्सेज जावास्क्रिप्ट द्वारा लोड होंगे -->
+                    </select>
+                    <div id="feeDisplay" class="mt-2 p-3 bg-blue-50 rounded-lg text-xs font-semibold text-blue-900">
+                        <!-- फीस की जानकारी यहाँ दिखेगी -->
+                    </div>
+                </div>
+
+                <!-- 3. Payment Option -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">भुगतान विकल्प / Payment Option</label>
+                    <select id="payOption" onchange="togglePaymentSection()" class="w-full px-4 py-2.5 rounded-lg border text-sm bg-white">
+                        <option value="demo">एक हफ्ते फ्री डेमो (1 Week Free Demo)</option>
+                        <option value="payNow">अभी कोर्स खरीदें (Pay Now)</option>
+                    </select>
+                </div>
+
+                <!-- Pay Now Sub-options -->
+                <div id="payDetailsBox" class="hidden space-y-3 p-4 bg-slate-100 rounded-xl border">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">भुगतान का प्रकार / Payment Type</label>
+                        <select id="payType" onchange="calculateFinalAmount()" class="w-full px-3 py-2 rounded-lg border text-sm bg-white">
+                            <option value="monthly">मासिक फीस (Monthly Fee)</option>
+                            <option value="full">पूरी फीस (Full Fee - 5% Discount)</option>
+                        </select>
+                    </div>
+                    <div class="text-center p-3 bg-white rounded-lg border">
+                        <p class="text-xs text-slate-600">कुल देय राशि / Total Amount:</p>
+                        <p id="finalAmountText" class="text-lg font-bold text-emerald-600">₹0</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs font-bold text-slate-700 mb-1">इस QR पर भुगतान करें (Scan & Pay)</p>
+                        <!-- अपना QR यहाँ जोड़ सकते हैं -->
+                        <div class="bg-white p-2 inline-block rounded-lg shadow-sm border">
+                            <img src="qr.png" alt="QR Code" class="w-32 h-32 mx-auto object-contain">
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">UPI ID: your-upi-id@paytm</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">UTR नंबर / Transaction ID</label>
+                        <input type="text" id="utr" placeholder="पेमेंट करने के बाद 12 अंकों का UTR नंबर लिखें" class="w-full px-3 py-2 rounded-lg border text-sm bg-white">
+                    </div>
+                </div>
+
+                <!-- 4. Credentials (Mobile & Password twice) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">मोबाइल नंबर (यही आपकी लॉगिन आईडी होगी)</label>
+                        <input type="tel" id="mobile" required maxlength="10" placeholder="10 अंकों का नंबर" class="w-full px-3 py-2 rounded-lg border text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">मोबाइल नंबर दोबारा लिखें (Confirm Mobile)</label>
+                        <input type="tel" id="mobileConfirm" required maxlength="10" placeholder="नंबर दोबारा लिखें" class="w-full px-3 py-2 rounded-lg border text-sm">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">पासवर्ड बनाएं (Create Password)</label>
+                        <input type="password" id="password" required placeholder="पासवर्ड बनाएं" class="w-full px-3 py-2 rounded-lg border text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">पासवर्ड दोबारा लिखें (Confirm Password)</label>
+                        <input type="password" id="passwordConfirm" required placeholder="पासवर्ड दोबारा लिखें" class="w-full px-3 py-2 rounded-lg border text-sm">
+                    </div>
+                </div>
+
+                <!-- 5. Personal Details -->
+                <div class="space-y-3 pt-3 border-t">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">पूरा नाम (Full Name)</label>
+                        <input type="text" id="name" required placeholder="छात्र का पूरा नाम" class="w-full px-3 py-2 rounded-lg border text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">पिता का नाम (Father's Name)</label>
+                        <input type="text" id="fatherName" required placeholder="पिता का नाम" class="w-full px-3 py-2 rounded-lg border text-sm">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">लिंग (Gender)</label>
+                            <select id="gender" class="w-full px-3 py-2 rounded-lg border text-sm bg-white">
+                                <option value="Male">Male (पुरुष)</option>
+                                <option value="Female">Female (महिला)</option>
+                                <option value="Other">Other (अन्य)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">जन्म तिथि (Date of Birth)</label>
+                            <input type="date" id="dob" required class="w-full px-3 py-2 rounded-lg border text-sm bg-white">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">योग्यता / शिक्षा (Qualification)</label>
+                        <input type="text" id="qualification" placeholder="जैसे: 10th, 12th, Graduate" class="w-full px-3 py-2 rounded-lg border text-sm">
+                    </div>
+                </div>
+
+                <!-- 6. Certificate Question & Aadhaar -->
+                <div class="p-3 bg-slate-50 rounded-xl border space-y-3">
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="needCertificate" onchange="toggleAadhaar()" class="w-4 h-4 text-blue-600">
+                        <label for="needCertificate" class="text-xs font-bold text-slate-700">
+                            क्या आप कोर्स के बाद सर्टिफिकेट लेना चाहते हैं? / Do you want a certificate after the course?
+                        </label>
+                    </div>
+                    <div id="aadhaarBox" class="hidden">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">आधार नंबर (Aadhaar Number)</label>
+                        <input type="text" id="aadhaar" maxlength="12" placeholder="12 अंकों का आधार नंबर" class="w-full px-3 py-2 rounded-lg border text-sm bg-white">
+                    </div>
+                </div>
+
+                <!-- 7. Submit Button -->
+                <button type="submit" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 rounded-xl shadow-lg transition text-sm">
+                    Free Submit<br>
+                    <span class="text-xs font-normal text-blue-200">लॉगिन करके अपना कोर्स शुरू कीजिए, फीस बाद में दीजिए।</span>
+                </button>
+
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyCS96Zp2hIJaPlWAbfFeA0HrRZThOaqZBQ",
+          authDomain: "icec-mtr.firebaseapp.com",
+          projectId: "icec-mtr",
+          storageBucket: "icec-mtr.firebasestorage.app",
+          messagingSenderId: "941684627477",
+          appId: "1:941684627477:web:2dc7f962394b442364961c",
+          measurementId: "G-HCTFJ2R7MK"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Course Data from Excel Sheet
+        const coursesData = [
+            { name: "BASIC (English Typing Word, Excel, PPT)", duration: "3 Month", onlineTotal: 1500, onlineMonthly: 500, offlineTotal: 4200, offlineMonthly: 1400 },
+            { name: "Six Month Diploma (English Typing, Word, Excel PPT, Tally)", duration: "6 Month", onlineTotal: 3600, onlineMonthly: 600, offlineTotal: 7200, offlineMonthly: 1200 },
+            { name: "One Year Diploma (English & Hindi Typing, Word, Excel, PPT, Publisher, Canva, Tally)", duration: "12 Month", onlineTotal: 7200, onlineMonthly: 600, offlineTotal: 12000, offlineMonthly: 1000 },
+            { name: "MS Office (Advanced)", duration: "2 Month", onlineTotal: 1800, onlineMonthly: 900, offlineTotal: 4000, offlineMonthly: 2000 },
+            { name: "Advanced Excel", duration: "1 Month", onlineTotal: 999, onlineMonthly: 0, offlineTotal: 2000, offlineMonthly: 0 }, // OTP
+            { name: "TALLY", duration: "2 Month", onlineTotal: 2500, onlineMonthly: 1500, offlineTotal: 4800, offlineMonthly: 2400 },
+            { name: "TALLY ADVANCED WITH GSTR", duration: "3 Month", onlineTotal: 4500, onlineMonthly: 1500, offlineTotal: 7500, offlineMonthly: 2500 }
+        ];
+
+        function updateCourses() {
+            const mode = document.getElementById('mode').value;
+            const courseSelect = document.getElementById('course');
+            courseSelect.innerHTML = "";
+
+            coursesData.forEach((c, index) => {
+                let opt = document.createElement('option');
+                opt.value = index;
+                opt.text = `${c.name} (${c.duration})`;
+                courseSelect.appendChild(opt);
+            });
+            updateFeeDetails();
+        }
+
+        function updateFeeDetails() {
+            const mode = document.getElementById('mode').value;
+            const index = document.getElementById('course').value;
+            const c = coursesData[index];
+            const feeBox = document.getElementById('feeDisplay');
+
+            if (mode === 'online') {
+                let monthlyText = c.onlineMonthly > 0 ? `मासिक फीस (Monthly): ₹${c.onlineMonthly}` : `मासिक फीस: One Time Payment (OTP)`;
+                feeBox.innerHTML = `कोर्स अवधि: ${c.duration} | कुल ऑनलाइन फीस: ₹${c.onlineTotal} | ${monthlyText}`;
+            } else {
+                let monthlyText = c.offlineMonthly > 0 ? `मासिक फीस (Monthly): ₹${c.offlineMonthly}` : `मासिक फीस: One Time Payment (OTP)`;
+                feeBox.innerHTML = `कोर्स अवधि: ${c.duration} | कुल ऑफलाइन फीस: ₹${c.offlineTotal} | ${monthlyText}`;
+            }
+            calculateFinalAmount();
+        }
+
+        function togglePaymentSection() {
+            const option = document.getElementById('payOption').value;
+            const box = document.getElementById('payDetailsBox');
+            if (option === 'payNow') {
+                box.classList.remove('hidden');
+                calculateFinalAmount();
+            } else {
+                box.classList.add('hidden');
+            }
+        }
+
+        function calculateFinalAmount() {
+            const mode = document.getElementById('mode').value;
+            const index = document.getElementById('course').value;
+            const c = coursesData[index];
+            const payType = document.getElementById('payType').value;
+            const amountText = document.getElementById('finalAmountText');
+
+            let amount = 0;
+            if (mode === 'online') {
+                if (payType === 'full') {
+                    amount = c.onlineTotal * 0.95; // 5% discount
+                } else {
+                    amount = c.onlineMonthly > 0 ? c.onlineMonthly : c.onlineTotal;
+                }
+            } else {
+                if (payType === 'full') {
+                    amount = c.offlineTotal * 0.95; // 5% discount
+                } else {
+                    amount = c.offlineMonthly > 0 ? c.offlineMonthly : c.offlineTotal;
+                }
+            }
+            amountText.innerText = `₹${Math.round(amount)} (5% छूट के बाद / लागू दर)`;
+        }
+
+        function toggleAadhaar() {
+            const box = document.getElementById('aadhaarBox');
+            const checkbox = document.getElementById('needCertificate');
+            if (checkbox.checked) {
+                box.classList.remove('hidden');
+            } else {
+                box.classList.add('hidden');
+            }
+        }
+
+        // Form Submission to Firebase
+        document.getElementById('regForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const mobile = document.getElementById('mobile').value;
+            const mobileConfirm = document.getElementById('mobileConfirm').value;
+            const password = document.getElementById('password').value;
+            const passwordConfirm = document.getElementById('passwordConfirm').value;
+
+            if (mobile !== mobileConfirm) {
+                alert("मोबाइल नंबर मेल नहीं खा रहे हैं! कृपया दोबारा जांच करें।");
+                return;
+            }
+            if (password !== passwordConfirm) {
+                alert("पासवर्ड मेल नहीं खा रहे हैं! कृपया दोबारा जांच करें।");
+                return;
+            }
+
+            const mode = document.getElementById('mode').value;
+            const courseIndex = document.getElementById('course').value;
+            const courseName = coursesData[courseIndex].name;
+            const payOption = document.getElementById('payOption').value;
+            const utr = document.getElementById('utr').value || 'Free Demo';
+            
+            const name = document.getElementById('name').value;
+            const fatherName = document.getElementById('fatherName').value;
+            const gender = document.getElementById('gender').value;
+            const dob = document.getElementById('dob').value;
+            const qualification = document.getElementById('qualification').value;
+            const needCertificate = document.getElementById('needCertificate').checked;
+            const aadhaar = document.getElementById('aadhaar').value || '-';
+
+            try {
+                await db.collection("students").doc(mobile).set({
+                    name: name,
+                    fatherName: fatherName,
+                    gender: gender,
+                    dob: dob,
+                    qualification: qualification,
+                    mobile: mobile,
+                    password: password,
+                    mode: mode,
+                    course: courseName,
+                    paymentOption: payOption,
+                    utr: utr,
+                    needCertificate: needCertificate,
+                    aadhaar: aadhaar,
+                    status: payOption === 'demo' ? "Active (Demo)" : "Pending",
+                    createdAt: new Date()
+                });
+
+                alert("रजिस्ट्रेशन सफल रहा! आपका मोबाइल नंबर ही आपकी लॉगिन आईडी है। अब आप लॉगिन करके अपना कोर्स शुरू कर सकते हैं।");
+                window.location.href = "login.html";
+            } catch (error) {
+                alert("त्रुटि: " + error.message);
+            }
+        });
+
+        // Initial Load
+        window.onload = updateCourses;
+    </script>
+</body>
+</html>
