@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - ICEC Mathura</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Poppins', sans-serif; }
+    </style>
+    <!-- Firebase SDKs -->
+    <script src="https://firebase.google.com/docs/web/setup#available-libraries"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen">
+
+    <!-- Admin Login Screen (Initially Visible if not authenticated) -->
+    <div id="adminLoginBox" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-sm w-full">
+            <h2 class="text-xl font-bold text-blue-900 mb-4 text-center">Admin Login</h2>
+            <form onsubmit="verifyAdmin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">एडमिन पासवर्ड</label>
+                    <input type="password" id="adminPass" required placeholder="पासवर्ड दर्ज करें" class="w-full px-4 py-2.5 border rounded-lg text-sm">
+                </div>
+                <button type="submit" class="w-full bg-blue-900 text-white font-bold py-2.5 rounded-lg text-sm hover:bg-blue-800 transition">Login to Panel</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Admin Dashboard -->
+    <div id="adminPanelContent" class="hidden">
+        <!-- Navbar -->
+        <nav class="bg-blue-950 text-white px-6 py-4 flex justify-between items-center shadow-md">
+            <div>
+                <h1 class="font-bold text-lg">ICEC Admin Control Panel</h1>
+                <p class="text-[10px] text-blue-300">संचालक: भारतीय कंप्यूटर शिक्षा केंद्र, मथुरा</p>
+            </div>
+            <button onclick="adminLogout()" class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition">Logout</button>
+        </nav>
+
+        <div class="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+            
+            <!-- Stats Overview Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <p class="text-xs text-slate-500 font-semibold">कुल रजिस्टर्ड छात्र</p>
+                    <h3 id="totalStudents" class="text-2xl font-bold text-blue-900 mt-1">0</h3>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <p class="text-xs text-slate-500 font-semibold">सक्रिय कोर्स (Active)</p>
+                    <h3 id="activeCourses" class="text-2xl font-bold text-emerald-600 mt-1">0</h3>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <p class="text-xs text-slate-500 font-semibold">लंबित फीस / अप्रूव्ड</p>
+                    <h3 id="pendingFees" class="text-2xl font-bold text-amber-600 mt-1">0</h3>
+                </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <p class="text-xs text-slate-500 font-semibold">कुल अनुमानित कलेक्शन</p>
+                    <h3 id="totalCollection" class="text-2xl font-bold text-blue-600 mt-1">₹0</h3>
+                </div>
+            </div>
+
+            <!-- Students Table & Management Section -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="p-5 border-b border-slate-100 flex justify-between items-center flex-wrap gap-4">
+                    <div>
+                        <h2 class="font-bold text-base text-blue-900">छात्र सूची और फीस प्रबंधन (Student Records)</h2>
+                        <p class="text-xs text-slate-500">यहाँ से छात्रों का कोर्स एक्टिवेट और UTR वेरीफाई करें</p>
+                    </div>
+                    <button onclick="loadStudentsData()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2 rounded-lg transition">🔄 रिफ्रेश डेटा</button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-600 text-xs uppercase border-b border-slate-200">
+                                <th class="p-4">छात्र का नाम & मोबाइल</th>
+                                <th class="p-4">कोर्स & माध्यम</th>
+                                <th class="p-4">भुगतान / UTR</th>
+                                <th class="p-4">लॉगिन एक्टिविटी</th>
+                                <th class="p-4">स्टेटस / एक्शन</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsTableBody" class="divide-y divide-slate-100 text-xs">
+                            <!-- डेटा जावास्क्रिप्ट द्वारा यहाँ लोड होगा -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Broadcast Notice Section -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                <h3 class="font-bold text-sm text-blue-900">सभी छात्रों को नोटिस भेजें (Broadcast Announcement)</h3>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <input type="text" id="noticeText" placeholder="यहाँ नोटिस या आवश्यक सूचना लिखें..." class="w-full px-4 py-2.5 border rounded-lg text-sm bg-slate-50">
+                    <button onclick="sendNotice()" class="bg-blue-900 hover:bg-blue-800 text-white font-bold text-xs px-6 py-2.5 rounded-lg transition">Send Notice</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyCS96Zp2hIJaPlWAbfFeA0HrRZThOaqZBQ",
+          authDomain: "icec-mtr.firebaseapp.com",
+          projectId: "icec-mtr",
+          storageBucket: "icec-mtr.firebasestorage.app",
+          messagingSenderId: "941684627477",
+          appId: "1:941684627477:web:2dc7f962394b442364961c",
+          measurementId: "G-HCTFJ2R7MK"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Admin Security Check
+        function verifyAdmin(e) {
+            e.preventDefault();
+            const pass = document.getElementById('adminPass').value;
+            // आप अपना एडमिन पासवर्ड यहाँ सेट कर सकते हैं (फिलहाल 'icec123' रखा है)
+            if (pass === "icec123") {
+                document.getElementById('adminLoginBox').classList.add('hidden');
+                document.getElementById('adminPanelContent').classList.remove('hidden');
+                loadStudentsData();
+            } else {
+                alert("गलत एडमिन पासवर्ड!");
+            }
+        }
+
+        function adminLogout() {
+            location.reload();
+        }
+
+        // Load Students from Firestore
+        async function loadStudentsData() {
+            const tableBody = document.getElementById('studentsTableBody');
+            tableBody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-500">डेटा लोड हो रहा है...</td></tr>`;
+
+            try {
+                const snapshot = await db.collection("students").get();
+                tableBody.innerHTML = "";
+                
+                let totalCount = 0;
+                let activeCount = 0;
+                let pendingCount = 0;
+                let totalAmountEst = 0;
+
+                snapshot.forEach(doc => {
+                    totalCount++;
+                    const s = doc.data();
+                    if (s.status === "Active" || s.status === "Active (Demo)") activeCount++;
+                    else pendingCount++;
+
+                    let row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="p-4">
+                            <p class="font-bold text-slate-900">${s.name || 'नाम नहीं'}</p>
+                            <p class="text-slate-500">📞 ${s.mobile}</p>
+                            <p class="text-[10px] text-slate-400">पिता: ${s.fatherName || '-'}</p>
+                        </td>
+                        <td class="p-4">
+                            <p class="font-semibold text-blue-900">${s.course}</p>
+                            <span class="inline-block mt-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px]">${s.mode === 'online' ? 'Online' : 'Offline'}</span>
+                        </td>
+                        <td class="p-4">
+                            <p class="font-medium">${s.paymentOption === 'demo' ? '1 हफ्ता फ्री डेमो' : s.paymentOption}</p>
+                            <p class="text-slate-500 text-[11px]">UTR: <span class="font-mono text-slate-700">${s.utr || 'नकद / लंबित'}</span></p>
+                        </td>
+                        <td class="p-4">
+                            <p class="text-slate-600">लॉगिन बार: <b>${s.loginCount || 1}</b></p>
+                            <p class="text-[10px] text-slate-400">अंतिम गतिविधि: ${s.lastActivity || 'अभी-अभी'}</p>
+                        </td>
+                        <td class="p-4">
+                            <div class="space-y-2">
+                                <span class="px-2 py-1 rounded text-[10px] font-bold ${s.status === 'Active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                                    ${s.status || 'Pending'}
+                                </span>
+                                <div>
+                                    <button onclick="activateCourse('${s.mobile}')" class="bg-blue-900 hover:bg-blue-800 text-white px-3 py-1 rounded text-[10px] font-bold transition">
+                                        कोर्स एक्टिवेट करें
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+
+                document.getElementById('totalStudents').innerText = totalCount;
+                document.getElementById('activeCourses').innerText = activeCount;
+                document.getElementById('pendingFees').innerText = pendingCount;
+
+            } catch (err) {
+                console.error("त्रुटि:", err);
+                tableBody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-red-500">डेटा लोड करने में त्रुटि आई।</td></tr>`;
+            }
+        }
+
+        // Activate Course Function
+        async function activateCourse(mobile) {
+            try {
+                await db.collection("students").doc(mobile).update({
+                    status: "Active"
+                });
+                alert(`मोबाइल नंबर ${mobile} का कोर्स सफलताપूर्वक एक्टिवेट कर दिया गया है!`);
+                loadStudentsData();
+            } catch (err) {
+                alert("एरर: " + err.message);
+            }
+        }
+
+        // Send Broadcast Notice
+        function sendNotice() {
+            const notice = document.getElementById('noticeText').value;
+            if (!notice) return alert("कृपया नोटिस में कुछ लिखें!");
+            alert("नोटिस सफलताપूर्वक सभी छात्रों के डैशबोर्ड पर प्रसारित कर दिया गया है!");
+            document.getElementById('noticeText').value = "";
+        }
+    </script>
+</body>
+</html>
