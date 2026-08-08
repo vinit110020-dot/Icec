@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Verification - ICEC Mathura</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Poppins', sans-serif; }
+        @media print {
+            body * { visibility: hidden; }
+            #printableCertificate, #printableCertificate * { visibility: visible; }
+            #printableCertificate { position: absolute; left: 0; top: 0; width: 100%; border: none; box-shadow: none; }
+        }
+    </style>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-slate-200 py-4">
+        <div class="max-w-7xl mx-auto px-6 flex justify-between items-center">
+            <a href="index.html" class="font-bold text-blue-900 text-lg">ICEC Mathura</a>
+            <a href="index.html" class="text-xs text-blue-600 font-semibold hover:underline">← होम पेज</a>
+        </div>
+    </header>
+
+    <!-- Main Section -->
+    <main class="max-w-3xl mx-auto px-4 py-10 w-full">
+        
+        <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200 mb-8 text-center">
+            <h1 class="text-2xl font-bold text-blue-900 mb-2">सर्टिफिकेट / मार्कशीट सत्यापन</h1>
+            <p class="text-xs text-slate-500 mb-6">अपना रजिस्टर्ड 10 अंकों का मोबाइल नंबर दर्ज करें</p>
+            
+            <div class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+                <input type="text" id="searchQuery" maxlength="10" placeholder="मोबाइल नंबर दर्ज करें" class="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                <button onclick="verifyCertificate()" class="bg-blue-900 hover:bg-blue-800 text-white font-bold px-6 py-2.5 rounded-lg shadow-md transition text-sm">सत्यापित करें</button>
+            </div>
+        </div>
+
+        <!-- Certificate Box (Hidden initially) -->
+        <div id="resultContainer" class="hidden">
+            <div id="printableCertificate" class="bg-white border-8 border-double border-blue-900 p-8 rounded-xl shadow-2xl relative text-center">
+                
+                <div class="mb-6">
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-blue-900 tracking-wider">INDIAN COMPUTER EDUCATION CENTER</h2>
+                    <p class="text-xs text-slate-600 font-semibold tracking-widest mt-1">MATHURA, UTTAR PRADESH</p>
+                    <p class="text-[11px] text-emerald-600 font-bold mt-1">ISO 9001:2015 Certified Institute</p>
+                </div>
+
+                <div class="my-6">
+                    <span class="text-xs uppercase tracking-widest bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-bold">Certificate of Completion</span>
+                    <p class="text-xs text-slate-500 mt-4">This is to certify that</p>
+                    <h3 id="resName" class="text-xl sm:text-2xl font-bold text-slate-900 border-b-2 border-slate-300 inline-block px-6 py-1 my-2">--</h3>
+                    <p class="text-xs text-slate-600">S/o / D/o <span id="resFather" class="font-bold text-slate-800">--</span></p>
+                </div>
+
+                <div class="my-4 text-sm text-slate-700">
+                    <p>has successfully completed the professional training course in</p>
+                    <p id="resCourse" class="text-lg font-extrabold text-blue-900 my-1">--</p>
+                    <p class="text-xs text-slate-500">Training Mode: <span id="resMode" class="font-semibold uppercase">--</span></p>
+                </div>
+
+                <div class="flex justify-between items-end mt-10 pt-6 border-t border-slate-200 text-xs">
+                    <div class="text-left">
+                        <p class="font-bold text-slate-800">Registration ID:</p>
+                        <p id="resMobile" class="text-slate-600">--</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="w-20 h-10 border border-dashed border-slate-400 mx-auto flex items-center justify-center text-[10px] text-slate-400">Stamp/Seal</div>
+                        <p class="mt-1 font-bold text-slate-800">Director Signatory</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-slate-800">Status:</p>
+                        <p id="resStatus" class="text-emerald-600 font-bold">Verified</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-6">
+                <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-lg shadow-md transition text-sm">🖨️ सर्टिफिकेट प्रिंट / डाउनलोड करें</button>
+            </div>
+        </div>
+
+        <!-- Error Box -->
+        <div id="errorContainer" class="hidden text-center bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-sm">
+            कोई रिकॉर्ड नहीं मिला! कृपया सही मोबाइल नंबर दर्ज करें या पहले रजिस्ट्रेशन करें।
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-blue-950 text-white py-6 text-center text-xs">
+        &copy; 2026 ICEC Mathura. All Rights Reserved.
+    </footer>
+
+    <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyCS96Zp2hIJaPlWAbfFeA0HrRZThOaqZBQ",
+          authDomain: "icec-mtr.firebaseapp.com",
+          projectId: "icec-mtr",
+          storageBucket: "icec-mtr.firebasestorage.app",
+          messagingSenderId: "941684627477",
+          appId: "1:941684627477:web:2dc7f962394b442364961c",
+          measurementId: "G-HCTFJ2R7MK"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        async function verifyCertificate() {
+            const query = document.getElementById('searchQuery').value.trim();
+            const resultContainer = document.getElementById('resultContainer');
+            const errorContainer = document.getElementById('errorContainer');
+
+            if (query.length !== 10) {
+                alert("कृपया सही 10 अंकों का मोबाइल नंबर दर्ज करें!");
+                return;
+            }
+
+            resultContainer.classList.add('hidden');
+            errorContainer.classList.add('hidden');
+
+            try {
+                const docRef = db.collection("students").doc(query);
+                const docSnap = await docRef.get();
+
+                if (docSnap.exists) {
+                    const data = docSnap.data();
+                    document.getElementById('resName').innerText = data.name || "N/A";
+                    document.getElementById('resFather').innerText = data.fatherName || "N/A";
+                    document.getElementById('resCourse').innerText = data.course || "N/A";
+                    document.getElementById('resMode').innerText = data.mode || "N/A";
+                    document.getElementById('resMobile').innerText = data.mobile || query;
+                    document.getElementById('resStatus').innerText = data.status || "Verified";
+
+                    resultContainer.classList.remove('hidden');
+                } else {
+                    errorContainer.classList.remove('hidden');
+                }
+            } catch (err) {
+                alert("सत्यापन में त्रुटि: " + err.message);
+            }
+        }
+    </script>
+</body>
+</html>
