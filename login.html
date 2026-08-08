@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Login - ICEC Mathura</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Poppins', sans-serif; }
+    </style>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-slate-200 py-4">
+        <div class="max-w-7xl mx-auto px-6 flex justify-between items-center">
+            <a href="index.html" class="font-bold text-blue-900 text-lg">ICEC Mathura</a>
+            <a href="index.html" class="text-xs text-blue-600 font-semibold hover:underline">← होम पेज पर जाएं</a>
+        </div>
+    </header>
+
+    <!-- Login Box -->
+    <main class="max-w-md mx-auto px-4 py-12 w-full">
+        <div class="bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
+            
+            <div class="text-center mb-6">
+                <h1 class="text-2xl font-bold text-blue-900">छात्र लॉगिन (Student Login)</h1>
+                <p class="text-xs text-slate-500 mt-1">अपने रजिस्टर्ड मोबाइल नंबर और पासवर्ड से प्रवेश करें</p>
+            </div>
+
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">मोबाइल नंबर (Mobile Number)</label>
+                    <input type="tel" id="mobile" required maxlength="10" placeholder="10 अंकों का मोबाइल नंबर" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">पासवर्ड (Password)</label>
+                    <input type="password" id="password" required placeholder="अपना पासवर्ड दर्ज करें" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
+                </div>
+                <button type="submit" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 rounded-lg shadow-md transition text-sm">
+                    Login
+                </button>
+            </form>
+
+            <div class="mt-6 text-center border-t pt-4">
+                <p class="text-xs text-slate-600">अकाउंट नहीं है? <a href="registration.html" class="text-blue-600 font-bold underline">रजिस्टर करें</a></p>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-blue-950 text-white py-6 text-center text-xs">
+        &copy; 2026 ICEC Mathura. All Rights Reserved.
+    </footer>
+
+    <script>
+        const firebaseConfig = {
+          apiKey: "AIzaSyCS96Zp2hIJaPlWAbfFeA0HrRZThOaqZBQ",
+          authDomain: "icec-mtr.firebaseapp.com",
+          projectId: "icec-mtr",
+          storageBucket: "icec-mtr.firebasestorage.app",
+          messagingSenderId: "941684627477",
+          appId: "1:941684627477:web:2dc7f962394b442364961c",
+          measurementId: "G-HCTFJ2R7MK"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const mobile = document.getElementById('mobile').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const doc = await db.collection("students").doc(mobile).get();
+                if (doc.exists && doc.data().password === password) {
+                    sessionStorage.setItem('userMobile', mobile);
+                    window.location.href = "dashboard.html";
+                } else {
+                    alert("गलत मोबाइल नंबर या पासवर्ड! कृपया दोबारा जांच करें।");
+                }
+            } catch (err) {
+                alert("लॉगिन त्रुटि: " + err.message);
+            }
+        });
+    </script>
+</body>
+</html>
